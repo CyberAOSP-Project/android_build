@@ -3005,8 +3005,14 @@ $(INTERNAL_OTA_PACKAGE_TARGET): $(BUILT_TARGET_FILES_PACKAGE) \
 	   $(if $(OEM_OTA_CONFIG), -o $(OEM_OTA_CONFIG)) \
 	   $(BUILT_TARGET_FILES_PACKAGE) $@
 
-.PHONY: otapackage
+CYBER_TARGET_PACKAGE := $(PRODUCT_OUT)/$(CYBER_VERSION).zip
+
+.PHONY: otapackage bacon
 otapackage: $(INTERNAL_OTA_PACKAGE_TARGET)
+bacon: otapackage
+	$(hide) ln -f $(INTERNAL_OTA_PACKAGE_TARGET) $(CYBER_TARGET_PACKAGE)
+	$(hide) $(MD5SUM) $(CYBER_TARGET_PACKAGE) > $(CYBER_TARGET_PACKAGE).md5sum
+	@echo "**Package complete"**: $(CYBER_TARGET_PACKAGE)"
 
 endif    # build_ota_package
 
