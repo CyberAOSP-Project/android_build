@@ -206,6 +206,10 @@ javax\.microedition\.khronos\.egl
 android
 
 ###################################################
+# org.cyberaosp.keydisabler.jar
+org\.cyberaosp\..*
+
+###################################################
 # apache-xml.jar
 org\.apache\.xml\.res
 org\.apache\.xml\.utils
