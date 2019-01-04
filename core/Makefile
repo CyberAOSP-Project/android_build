@@ -1,5 +1,17 @@
 # Put some miscellaneous rules here
 
+# Build system colors
+
+ifneq ($(BUILD_WITH_COLORS),0)
+  CL_RED="\033[31m"
+  CL_GRN="\033[32m"
+  CL_YLW="\033[33m"
+  CL_BLU="\033[34m"
+  CL_MAG="\033[35m"
+  CL_CYN="\033[36m"
+  CL_RST="\033[0m"
+endif
+
 # HACK: clear LOCAL_PATH from including last build target before calling
 # intermedites-dir-for
 LOCAL_PATH := $(BUILD_SYSTEM)
@@ -1460,9 +1472,9 @@ endef
 RECOVERYIMAGE_ID_FILE := $(PRODUCT_OUT)/recovery.id
 # $(1): output file
 define build-recoveryimage-target
-  @echo "Generating Changelog"
-  $(hide) ./vendor/cyber/build/tools/changelog
-  $(hide) mv $(PRODUCT_OUT)/Changelog.txt $(PRODUCT_OUT)/$(TARGET_PRODUCT)-Changelog.txt
+  $(hide) ./vendor/cyber/tools/changelog.sh
+  $(hide) mv $(PRODUCT_OUT)/Changelog.txt $(PRODUCT_OUT)/$(CYBER_VERSION)-Changelog.txt
+  @echo ----- Making recovery image ------
   $(if $(filter true,$(PRODUCTS.$(INTERNAL_PRODUCT).PRODUCT_SUPPORTS_VBOOT)), \
     $(hide) $(MKBOOTIMG) $(INTERNAL_RECOVERYIMAGE_ARGS) $(INTERNAL_MKBOOTIMG_VERSION_ARGS) $(BOARD_MKBOOTIMG_ARGS) --output $(1).unsigned, \
     $(hide) $(MKBOOTIMG) $(INTERNAL_RECOVERYIMAGE_ARGS) $(INTERNAL_MKBOOTIMG_VERSION_ARGS) $(BOARD_MKBOOTIMG_ARGS) --output $(1) --id > $(RECOVERYIMAGE_ID_FILE))
@@ -1670,6 +1682,8 @@ endif
 
 # $(1): output file
 define build-systemimage-target
+  $(hide) ./vendor/cyber/tools/changelog.sh
+  $(hide) mv $(PRODUCT_OUT)/Changelog.txt $(PRODUCT_OUT)/$(CYBER_VERSION)-Changelog.txt
   @echo "Target system fs image: $(1)"
   $(call create-system-vendor-symlink)
   $(call create-system-product-symlink)
@@ -3104,22 +3118,26 @@ $(INTERNAL_OTA_PACKAGE_TARGET): $(BUILT_TARGET_FILES_PACKAGE) \
 
 CYBER_TARGET_PACKAGE := $(PRODUCT_OUT)/$(CYBER_VERSION).zip
 
-.PHONY: otapackage bacon
+.PHONY: otapackage bacon cyber
 otapackage: $(INTERNAL_OTA_PACKAGE_TARGET)
 bacon: otapackage
+bacon: cyber
+cyber: otapackage
 	$(hide) ln -f $(INTERNAL_OTA_PACKAGE_TARGET) $(CYBER_TARGET_PACKAGE)
 	$(hide) $(MD5SUM) $(CYBER_TARGET_PACKAGE) > $(CYBER_TARGET_PACKAGE).md5sum
-        @echo "<=====><=====><=====><=====><=====><=====><=====><=====><=====><=====><=====> "
-        @echo " ██████╗██╗   ██╗██████╗ ███████╗██████╗  █████╗  ██████╗ ███████╗██████╗     "
-        @echo "██╔════╝╚██╗ ██╔╝██╔══██╗██╔════╝██╔══██╗██╔══██╗██╔═══██╗██╔════╝██╔══██╗    "
-        @echo "██║      ╚████╔╝ ██████╔╝█████╗  ██████╔╝███████║██║   ██║███████╗██████╔╝    "
-        @echo "██║       ╚██╔╝  ██╔══██╗██╔══╝  ██╔══██╗██╔══██║██║   ██║╚════██║██╔═══╝     "
-        @echo "╚██████╗   ██║   ██████╔╝███████╗██║  ██║██║  ██║╚██████╔╝███████║██║         "
-        @echo " ╚═════╝   ╚═╝   ╚═════╝ ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝         "
-        @echo "                            Flash And Enjoy!                                  "
-        @echo "<=====><=====><=====><=====><=====><=====><=====><=====><=====><=====><=====> "
-	@echo "**Package complete"**: $(CYBER_TARGET_PACKAGE)"
-
+	@echo -e ${CL_RST} ""
+	@echo -e ${CL_RST} "  ██████╗██╗   ██╗██████╗ ███████╗██████╗  █████╗  ██████╗ ███████╗██████╗"
+	@echo -e ${CL_RST} " ██╔════╝╚██╗ ██╔╝██╔══██╗██╔════╝██╔══██╗██╔══██╗██╔═══██╗██╔════╝██╔══██╗"
+	@echo -e ${CL_RST} " ██║      ╚████╔╝ ██████╔╝█████╗  ██████╔╝███████║██║   ██║███████╗██████╔╝"
+	@echo -e ${CL_RST} " ██║       ╚██╔╝  ██╔══██╗██╔══╝  ██╔══██╗██╔══██║██║   ██║╚════██║██╔═══╝"
+	@echo -e ${CL_RST} " ╚██████╗   ██║   ██████╔╝███████╗██║  ██║██║  ██║╚██████╔╝███████║██║"
+	@echo -e ${CL_RST} "  ╚═════╝   ╚═╝   ╚═════╝ ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝"
+	@echo -e ${CL_RST} "" ${CL_RST}
+	@echo -e ${CL_BLD}${CL_RED}"===============================-Package complete-==============================="${CL_RED}
+	@echo -e ${CL_BLD}${CL_YLW}"Zip: "${CL_YLW} $(CYBER_TARGET_PACKAGE)${CL_RST}
+	@echo -e ${CL_BLD}${CL_YLW}"MD5: "${CL_YLW}" `cat $(CYBER_TARGET_PACKAGE).md5sum | awk '{print $$1}' `"${CL_RST}
+	@echo -e ${CL_BLD}${CL_YLW}"Size:"${CL_YLW}" `du -sh $(CYBER_TARGET_PACKAGE) | awk '{print $$1}' `"${CL_RST}
+	@echo -e ${CL_BLD}${CL_RED}"================================================================================"${CL_RED}
 endif    # build_ota_package
 
 # -----------------------------------------------------------------
